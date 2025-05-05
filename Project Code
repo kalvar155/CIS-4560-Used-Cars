@@ -1,0 +1,149 @@
+DROP TABLE IF EXISTS used_cars_full;
+CREATE EXTERNAL TABLE IF NOT EXISTS used_cars_full (
+    vin STRING,
+    back_legroom STRING, -- Adjusting data type based on potential string values
+    bed STRING,
+    bed_height STRING, -- Adjusting data type
+    bed_length STRING, -- Adjusting data type
+    body_type STRING,
+    cabin STRING,
+    city STRING,
+    city_fuel_economy STRING, -- Adjusting data type
+    combine_fuel_economy STRING, -- Adjusting data type
+    daysonmarket STRING,    -- Adjusting data type
+    dealer_zip STRING,
+    description STRING,
+    engine_cylinders STRING, -- Adjusting data type
+    engine_displacement STRING, -- Adjusting data type
+    engine_type STRING,
+    exterior_color STRING,
+    fleet STRING,           -- Adjusting data type
+    frame_damaged STRING,   -- Adjusting data type
+    franchise_dealer STRING, -- Adjusting data type
+    franchise_make STRING,
+    front_legroom STRING,   -- Adjusting data type
+    fuel_tank_volume STRING, -- Adjusting data type
+    fuel_type STRING,
+    has_accidents STRING,   -- Adjusting data type
+    height STRING,          -- Adjusting data type
+    highway_fuel_economy STRING, -- Adjusting data type
+    horsepower STRING,      -- Adjusting data type
+    interior_color STRING,
+    isCab STRING,           -- Adjusting data type
+    is_certified STRING,    -- Adjusting data type
+    is_cpo STRING,          -- Adjusting data type
+    is_new STRING,          -- Adjusting data type
+    is_oemcpo STRING,       -- Adjusting data type
+    latitude STRING,        -- Adjusting data type
+    length STRING,          -- Adjusting data type
+    listed_date STRING,
+    listing_color STRING,
+    listing_id STRING,
+    longitude STRING,       -- Adjusting data type
+    main_picture_url STRING,
+    major_options STRING,
+    make_name STRING,
+    maximum_seating STRING, -- Adjusting data type
+    mileage STRING,         -- Adjusting data type
+    model_name STRING,
+    owner_count STRING,     -- Adjusting data type
+    power STRING,           -- Adjusting data type
+    price STRING,           -- Adjusting data type
+    salvage STRING,         -- Adjusting data type
+    savings_amount STRING,  -- Adjusting data type
+    seller_rating STRING,   -- Adjusting data type
+    sp_id STRING,
+    sp_name STRING,
+    theft_title STRING,     -- Adjusting data type
+    torque STRING,
+    transmission STRING,
+    transmission_display STRING,
+    trimId STRING,
+    trim_name STRING,
+    vehicle_damage_category STRING,
+    wheel_system STRING,
+    wheel_system_display STRING,
+    wheelbase STRING,       -- Adjusting data type
+    width STRING,           -- Adjusting data type
+    year STRING             -- Adjusting data type
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+LOCATION '/user/your_user/UsedCarsData/raw_data/';
+
+DROP TABLE IF EXISTS used_cars_narrow;
+CREATE EXTERNAL TABLE used_cars_narrow AS
+SELECT
+    body_type,
+    exterior_color,
+    franchise_make,
+    fuel_type,
+    interior_color,
+    listing_color,
+    make_name,
+    CAST(price AS DECIMAL(10, 2)), -- Casting to a numerical type for analysis
+    wheel_system,
+    CAST(year AS INT)             -- Casting to an integer type for analysis
+FROM
+    used_cars_full;
+
+SELECT * FROM used_cars_narrow LIMIT 5;
+
+-- Average price by make
+SELECT make_name, AVG(price) AS avg_price
+FROM used_cars_narrow
+GROUP BY make_name
+ORDER BY avg_price DESC
+LIMIT 10;
+
+--  Count of cars by body type
+SELECT body_type, COUNT(*) AS num_cars
+FROM used_cars_narrow
+GROUP BY body_type
+ORDER BY num_cars DESC;
+
+-- Distribution of fuel types
+SELECT fuel_type, COUNT(*) AS num_cars
+FROM used_cars_narrow
+GROUP BY fuel_type;
+
+-- Used car listings
+SELECT
+    year,
+    COUNT(*) AS num_listings
+FROM
+    used_cars_narrow
+GROUP BY
+    year
+ORDER BY
+    year;
+	
+--Frequently listed car brands
+SELECT
+    make_name,
+    COUNT(*) AS num_listings
+FROM
+    used_cars_narrow
+GROUP BY
+    make_name
+ORDER BY
+    num_listings DESC
+LIMIT 10;
+
+-- Common exterior colors
+SELECT
+    exterior_color,
+    COUNT(*) AS num_listings
+FROM
+    used_cars_narrow
+GROUP BY
+    exterior_color
+ORDER BY
+    num_listings DESC
+LIMIT 10; -- You can adjust the LIMIT to see more or fewer colors
+
+hdfs dfs -ls /user/your_user/used_cars_narrow/
+
+hdfs dfs -copyToLocal /user/your_user/used_cars_narrow/000000_0 used_cars_narrow.csv
+
+$ scp your_user@your_ip_address:/home/your_local_machine/used_cars_narrow.csv ~/Downloads/
